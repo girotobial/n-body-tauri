@@ -2,7 +2,7 @@
 #![warn(clippy::perf, clippy::nursery, clippy::pedantic)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 use boid::Boid;
@@ -29,7 +29,8 @@ const THETA: f64 = 0.5;
 
 static BOIDS: RwLock<Vec<BoidRCell>> = RwLock::new(Vec::new());
 static BOUNDS: RwLock<Vec<Boundary>> = RwLock::new(Vec::new());
-
+static MAX: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(0.0, 0.0));
+static MIN: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(1000.0, 1000.0));
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 
 #[derive(serde::Serialize, Clone, Copy)]
@@ -69,9 +70,6 @@ fn get_boundaries(bounds: State<&'static RwLock<Vec<Boundary>>>) -> Vec<Boundary
 }
 
 fn main() {
-    const MIN: Vector2<f64> = Vector2::new(0.0, 0.0);
-    const MAX: Vector2<f64> = Vector2::new(1000.0, 1000.0);
-
     let mass_one = {
         let boid = Boid::new(200.0, 250.0, MASS_ONE);
         boid.set_velocity(Vector2::new(0.0, 1.0));
@@ -113,7 +111,10 @@ fn main() {
     tauri::Builder::default()
         .setup(|_| {
             std::thread::spawn(|| loop {
-                let mut tree = Quadtree::new(boundary::Boundary::new(MIN, MAX));
+                let mut min = MIN.lock().unwrap();
+                let mut max = MAX.lock().unwrap();
+
+                let mut tree = Quadtree::new(boundary::Boundary::new(*min, *max));
 
                 for body in BOIDS.read().unwrap().iter() {
                     if let Ok(()) = tree.insert(body.clone()) {}
@@ -132,6 +133,20 @@ fn main() {
                     let new_position = body.position() + new_velocity * DT;
                     body.set_velocity(new_velocity);
                     body.set_position(new_position);
+
+                    // Resize the tree
+                    if new_position.x < min.x {
+                        min.x = new_position.x;
+                    }
+                    if new_position.y < min.y {
+                        min.y = new_position.y;
+                    }
+                    if new_position.x > max.x {
+                        max.x = new_position.x;
+                    }
+                    if new_position.y > max.y {
+                        max.y = new_position.y;
+                    }
                 }
                 std::thread::sleep(Duration::from_millis(TIMESTEP));
             });

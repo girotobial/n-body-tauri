@@ -21,11 +21,11 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, bounds }) => {
         canvas.height = window.innerHeight;
 
         // Clear the canvas
-
         const draw = (body: Body): void => {
             context.beginPath();
-            context.arc(body.position.x, body.position.y, 1, 0, 2 * Math.PI);
             context.fillStyle = 'red';
+            context.arc(body.position.x, body.position.y, 1, 0, 2 * Math.PI);
+            context.fillText(`${body.mass.toLocaleString()}`, body.position.x + 5, body.position.y);
             context.fill();
             context.stroke();
         }
@@ -33,9 +33,10 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, bounds }) => {
         const drawBoundary = (bound: Boundary): void => {
             const width = bound.max.x - bound.min.x;
             const height = bound.max.y - bound.min.y;
-
+            
+            context.strokeStyle = "grey";
             context.beginPath();
-            context.strokeRect(bound.min.x, bound.min.y, width, -height);
+            context.strokeRect(bound.min.x, bound.min.y, width, height);
         }
 
         const update = () => {

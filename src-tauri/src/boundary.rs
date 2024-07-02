@@ -7,8 +7,19 @@ pub struct Boundary {
 }
 
 impl Boundary {
-    pub const fn new(min: Vector2<f64>, max: Vector2<f64>) -> Self {
-        Self { min, max }
+    pub fn new(min: Vector2<f64>, max: Vector2<f64>) -> Self {
+        let halfheight = (max.y - min.y) / 2.0;
+        let halfwide = (max.x - min.x) / 2.0;
+        let center = Vector2 {
+            x: min.x + halfwide,
+            y: min.y + halfheight,
+        };
+        let halfwidth = if halfheight > halfwide {
+            halfheight
+        } else {
+            halfwide
+        };
+        Self::from_center(center, halfwidth)
     }
 
     pub fn from_center(center: Vector2<f64>, halfwidth: f64) -> Self {

@@ -203,4 +203,7 @@ impl Quadtree {
     pub fn boundaries(&self) -> Vec<Boundary> {
         self.head.boundaries()
     }
+    pub fn boundary(&self) -> Boundary {
+        self.head.boundary
+    }
 }
