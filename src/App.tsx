@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/tauri';
 import Canvas from './components/Canvas';
-import { Body, Boundary } from './types';
+import { Body, Tree } from './types';
 import './App.css';
 
 function App() {
     const [bodies, setBodies] = useState<Body[]>([]);
-    const [bounds, setBounds] = useState<Boundary[]>([]);
+    const [tree, setTree] = useState<Tree>({boundaries: [], center_of_mass: {x: 0, y: 0}});
 
     useEffect(() => {
         async function fetchBodies() {
@@ -17,18 +17,18 @@ function App() {
                 console.error('Failed to fetch bodies:', error);
             }
         }
-        async function fetchBounds() {
+        async function fetchTree() {
             try {
-                const result = await invoke<Boundary[]>('get_boundaries');
-                setBounds(result);
+                const result = await invoke<Tree>('get_tree');
+                setTree(result);
             } catch (error) {
-                console.error('Failed to fetch boundaries:', error);
+                console.error('Failed to fetch tree:', error);
             }
         }
 
         async function update() {
             await fetchBodies();
-            await fetchBounds();
+            await fetchTree();
         }
 
         const animate = () => {
@@ -47,9 +47,7 @@ function App() {
     return (
         <>
         <h1>N-Body Problem</h1>
-        <div className="row">
-            <Canvas bodies={bodies} bounds={bounds} />
-        </div>
+            <Canvas bodies={bodies} tree={tree} />
         </>
     );
 }

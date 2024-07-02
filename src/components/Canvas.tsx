@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { Body, Boundary } from '../types';
+import { Body, Boundary, Tree } from '../types';
 
 type CanvasProps = {
     bodies: Body[],
-    bounds: Boundary[]
+    tree: Tree
 }
 
-const Canvas: React.FC<CanvasProps> = ({ bodies, bounds }) => {
+const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
@@ -24,8 +24,8 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, bounds }) => {
         const draw = (body: Body): void => {
             context.beginPath();
             context.fillStyle = 'red';
-            context.arc(body.position.x, body.position.y, 1, 0, 2 * Math.PI);
-            context.fillText(`${body.mass.toLocaleString()}`, body.position.x + 5, body.position.y);
+            context.strokeStyle = 'red';
+            context.arc(body.position.x, body.position.y, 3, 0, 2 * Math.PI);
             context.fill();
             context.stroke();
         }
@@ -39,6 +39,18 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, bounds }) => {
             context.strokeRect(bound.min.x, bound.min.y, width, height);
         }
 
+        const drawCom = (tree: Tree): void => {
+            context.fillStyle = 'green';
+            context.strokeStyle = 'green';
+            context.beginPath();
+            const x = tree.center_of_mass.x;
+            const y = tree.center_of_mass.y;
+            context.arc(x, y, 1, 0, 2 * Math.PI);
+            context.fillText(`Center of Mass: ${x.toFixed()}, ${y.toFixed()}`, x + 5, y);
+            context.fill();
+            context.stroke();
+        }
+
         const update = () => {
             context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -46,15 +58,17 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, bounds }) => {
                 draw(body);
             });
 
-            bounds.forEach(bound => {
+            tree.boundaries.forEach(bound => {
                 drawBoundary(bound);
-            })
+            });
+
+            drawCom(tree);
         }
 
         update()
 
         // Draw bodies
-    }, [bodies, bounds]);
+    }, [bodies, tree]);
 
 
     return <canvas ref={canvasRef} />;

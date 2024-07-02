@@ -13,3 +13,8 @@ export type Boundary = {
     min: Vec,
     max: Vec
 }
+
+export type Tree = {
+    boundaries: Boundary[],
+    center_of_mass: Vec,
+}

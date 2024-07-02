@@ -206,4 +206,7 @@ impl Quadtree {
     pub fn boundary(&self) -> Boundary {
         self.head.boundary
     }
+    pub fn center_of_mass(&self) -> Vector2<f64> {
+        self.head.center_of_mass
+    }
 }

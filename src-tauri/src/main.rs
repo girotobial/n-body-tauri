@@ -22,16 +22,17 @@ mod vector;
 const TIMESTEP: u64 = 10;
 const DT: f64 = TIMESTEP as f64 / 1000.0;
 const MASS_ONE: f64 = 125e12;
-const MASS_TWO: f64 = 4_833_385_275_574.0;
-const STANDARD_G: f64 = 10000.0;
-pub const GRAVITY: f64 = STANDARD_G / (MASS_ONE + MASS_TWO);
+const MASS_TWO: f64 = 10e11;
+const SATELITE_MASS: f64 = 10e9;
+pub const GRAVITY: f64 = 6.67430e-11;
 const THETA: f64 = 0.5;
+const CENTER_X: f64 = 250.0;
+const CENTER_Y: f64 = 250.0;
 
 static BOIDS: RwLock<Vec<BoidRCell>> = RwLock::new(Vec::new());
-static BOUNDS: RwLock<Vec<Boundary>> = RwLock::new(Vec::new());
-static MAX: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(0.0, 0.0));
-static MIN: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(1000.0, 1000.0));
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+static TREE_STATE: RwLock<Option<TreeState>> = RwLock::new(Option::None);
+static MIN: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(0.0, 0.0));
+static MAX: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(1000.0, 1000.0));
 
 #[derive(serde::Serialize, Clone, Copy)]
 pub struct Body {
@@ -59,53 +60,85 @@ impl From<&Arc<Boid>> for Body {
     }
 }
 
+#[derive(serde::Serialize, Debug, Clone)]
+struct TreeState {
+    boundaries: Vec<Boundary>,
+    center_of_mass: Vector2<f64>,
+}
+
 #[tauri::command]
 fn get_bodies(boids: State<&'static RwLock<Vec<BoidRCell>>>) -> Vec<Body> {
     boids.read().unwrap().iter().map(Body::from).collect()
 }
 
 #[tauri::command]
-fn get_boundaries(bounds: State<&'static RwLock<Vec<Boundary>>>) -> Vec<Boundary> {
-    bounds.read().unwrap().iter().copied().collect()
+fn get_tree(tree_state: State<&'static RwLock<Option<TreeState>>>) -> Option<TreeState> {
+    tree_state.read().unwrap().clone()
+}
+
+fn cold_colapse(center: Vector2<f64>, radius: f64, count: usize) -> Vec<Arc<Boid>> {
+    let increment = std::f64::consts::PI * 2.0 / count as f64;
+    let mut boids = vec![];
+    let mut theta = 0.0;
+
+    while theta < std::f64::consts::PI * 2.0 {
+        let x = theta.sin() * radius + center.x;
+        let y = theta.cos() * radius + center.y;
+        boids.push(Arc::new(Boid::new(x, y, MASS_ONE)));
+        theta += increment;
+    }
+    boids
+}
+
+fn orbital_speed(radius: f64, mass: f64) -> f64 {
+    (GRAVITY * mass / radius).sqrt()
 }
 
 fn main() {
     let mass_one = {
-        let boid = Boid::new(200.0, 250.0, MASS_ONE);
-        boid.set_velocity(Vector2::new(0.0, 1.0));
+        let boid = Boid::new(CENTER_X, CENTER_Y, MASS_ONE);
+        boid.set_velocity(Vector2::new(0.0, 0.0));
         Arc::new(boid)
     };
+    let mass_two_speed = (GRAVITY * MASS_ONE / 100.0).sqrt();
     let mass_two = {
-        let boid = Boid::new(200.0, 150.0, MASS_TWO);
-        boid.set_velocity(Vector2::new(10.0, 1.0));
+        let boid = Boid::new(CENTER_X + 100.0, CENTER_Y, MASS_TWO);
+        boid.set_velocity(Vector2::new(0.0, mass_two_speed));
         Arc::new(boid)
     };
     let mass_three = {
-        let boid = Boid::new(500.0, 250.0, MASS_ONE);
-        boid.set_velocity(Vector2::new(0.0, -1.0));
+        let boid = Boid::new(CENTER_X - 100.0, CENTER_Y, MASS_TWO);
+        boid.set_velocity(Vector2::new(0.0, -mass_two_speed));
         Arc::new(boid)
     };
     let mass_four = {
-        let boid = Boid::new(500.0, 150.0, MASS_TWO);
-        boid.set_velocity(Vector2::new(-10.0, -1.0));
+        let boid = Boid::new(CENTER_X + 50.0, CENTER_Y + 86.6, SATELITE_MASS);
+        boid.set_velocity(Vector2::new(-7.94, 4.58));
         Arc::new(boid)
     };
 
     let mass_five = {
-        let boid = Boid::new(300.0, 0.0, MASS_TWO);
-        boid.set_velocity(Vector2::new(0.0, 10.0));
-        Arc::new(boid)
-    };
-    let mass_six = {
-        let boid = Boid::new(0.0, 200.0, MASS_TWO);
-        boid.set_velocity(Vector2::new(10.0, 0.0));
+        let boid = Boid::new(CENTER_X + 50.0, CENTER_Y - 86.6, SATELITE_MASS);
+        boid.set_velocity(Vector2::new(7.94, 4.58));
         Arc::new(boid)
     };
 
-    for boid in [
-        mass_one, mass_two, mass_three, mass_four, mass_five, mass_six,
-    ] {
-        BOIDS.write().unwrap().push(boid);
+    let moon_sun_speed = orbital_speed(110.0, MASS_ONE);
+    let moon_speed = orbital_speed(10.0, MASS_TWO);
+
+    let mass_six = {
+        let boid = Boid::new(CENTER_X + 110.0, CENTER_Y, SATELITE_MASS);
+        boid.set_velocity(Vector2::new(0.0, moon_sun_speed + moon_speed));
+        Arc::new(boid)
+    };
+
+    {
+        let mut lock = BOIDS.write().unwrap();
+        for boid in [
+            mass_one, mass_two, mass_three, mass_four, mass_five, mass_six,
+        ] {
+            lock.push(boid);
+        }
     }
 
     tauri::Builder::default()
@@ -122,8 +155,12 @@ fn main() {
 
                 {
                     use std::mem::replace;
-                    let mut bounds = BOUNDS.write().expect("Could not acquire bounds lock");
-                    let _ = replace(&mut *bounds, tree.boundaries());
+                    let mut tree_state = TREE_STATE.write().expect("Could not acquire bounds lock");
+                    let new_state = TreeState {
+                        boundaries: tree.boundaries(),
+                        center_of_mass: tree.center_of_mass(),
+                    };
+                    let _ = replace(&mut *tree_state, Some(new_state));
                 }
 
                 for body in BOIDS.write().unwrap().iter() {
@@ -153,8 +190,8 @@ fn main() {
             Ok(())
         })
         .manage(&BOIDS)
-        .manage(&BOUNDS)
-        .invoke_handler(tauri::generate_handler![get_bodies, get_boundaries])
+        .manage(&TREE_STATE)
+        .invoke_handler(tauri::generate_handler![get_bodies, get_tree])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
