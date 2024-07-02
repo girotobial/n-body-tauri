@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use boid::Boid;
+use boundary::Boundary;
 use quadtree::Quadtree;
 use tauri::State;
 use types::BoidRCell;
@@ -27,6 +28,7 @@ pub const GRAVITY: f64 = STANDARD_G / (MASS_ONE + MASS_TWO);
 const THETA: f64 = 0.5;
 
 static BOIDS: RwLock<Vec<BoidRCell>> = RwLock::new(Vec::new());
+static BOUNDS: RwLock<Vec<Boundary>> = RwLock::new(Vec::new());
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 
@@ -59,6 +61,11 @@ impl From<&Arc<Boid>> for Body {
 #[tauri::command]
 fn get_bodies(boids: State<&'static RwLock<Vec<BoidRCell>>>) -> Vec<Body> {
     boids.read().unwrap().iter().map(Body::from).collect()
+}
+
+#[tauri::command]
+fn get_boundaries(bounds: State<&'static RwLock<Vec<Boundary>>>) -> Vec<Boundary> {
+    bounds.read().unwrap().iter().copied().collect()
 }
 
 fn main() {
@@ -112,6 +119,12 @@ fn main() {
                     if let Ok(()) = tree.insert(body.clone()) {}
                 }
 
+                {
+                    use std::mem::replace;
+                    let mut bounds = BOUNDS.write().expect("Could not acquire bounds lock");
+                    let _ = replace(&mut *bounds, tree.boundaries());
+                }
+
                 for body in BOIDS.write().unwrap().iter() {
                     let force = tree.calculate_force(body, THETA);
                     let acceleration = force * (1.0 / body.mass());
@@ -125,7 +138,8 @@ fn main() {
             Ok(())
         })
         .manage(&BOIDS)
-        .invoke_handler(tauri::generate_handler![get_bodies])
+        .manage(&BOUNDS)
+        .invoke_handler(tauri::generate_handler![get_bodies, get_boundaries])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -151,6 +151,14 @@ impl Node {
             Contents::Empty => return Vector2::default(),
         }
     }
+
+    pub fn boundaries(&self) -> Vec<Boundary> {
+        if let Contents::Children(children) = &self.contents {
+            children.iter().flat_map(|c| c.boundaries()).collect()
+        } else {
+            vec![self.boundary]
+        }
+    }
 }
 #[derive(Debug)]
 pub struct Quadtree {
@@ -190,5 +198,9 @@ impl Quadtree {
 
     pub fn calculate_force(&self, body: &BoidRCell, theta: f64) -> Vector2<f64> {
         self.head.calculate_force(body, theta)
+    }
+
+    pub fn boundaries(&self) -> Vec<Boundary> {
+        self.head.boundaries()
     }
 }

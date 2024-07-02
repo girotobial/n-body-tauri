@@ -1,6 +1,6 @@
 use crate::{boid::Boid, traits::Intersect, types::BoidRCell, vector::Vector2};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
 pub struct Boundary {
     pub min: Vector2<f64>,
     pub max: Vector2<f64>,

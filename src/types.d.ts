@@ -8,3 +8,8 @@ export type Body = {
     velocity: Vec,
     mass: number
 }
+
+export type Boundary = {
+    min: Vec,
+    max: Vec
+}
