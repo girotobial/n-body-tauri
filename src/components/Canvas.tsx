@@ -8,6 +8,10 @@ type CanvasProps = {
 
 const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const bodyRadius = (body: Body): number => {
+        const radius = Math.log10(body.mass / 10_000_000);
+        return radius;
+    }
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -25,7 +29,10 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             context.beginPath();
             context.fillStyle = 'red';
             context.strokeStyle = 'red';
-            context.arc(body.position.x, body.position.y, 3, 0, 2 * Math.PI);
+            const x = body.position.x;
+            const y = body.position.y;
+            const radius = bodyRadius(body);
+            context.arc(x, y, radius, 0, 2  * Math.PI);
             context.fill();
             context.stroke();
         }
