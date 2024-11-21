@@ -8,10 +8,9 @@ type CanvasProps = {
 
 const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const bodyRadius = (body: Body): number => {
-        const radius = Math.log10(body.mass / 10_000_000);
-        return radius;
-    }
+    var lastCalledTime;
+    var fps;
+    performance.now
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -31,8 +30,8 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             context.strokeStyle = 'red';
             const x = body.position.x;
             const y = body.position.y;
-            const radius = bodyRadius(body);
-            context.arc(x, y, radius, 0, 2  * Math.PI);
+            const radius = body.radius;
+            context.arc(x, y, radius / 3, 0, 2  * Math.PI);
             context.fill();
             context.stroke();
         }
@@ -58,7 +57,22 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             context.stroke();
         }
 
+        const drawFps = (ps: number | void): void => {
+            context.fillStyle = "Black";
+            context.font = "normal 16pt Arial";
+            context.fillText(ps + " fps",10,26);
+        }
+
         const update = () => {
+            if (!lastCalledTime) {
+                lastCalledTime = performance.now();
+                fps = 0;
+                return;
+            }
+            const delta = (performance.now() - lastCalledTime) / 1000;
+            lastCalledTime = performance.now();
+            fps = 1/delta;
+
             context.clearRect(0, 0, canvas.width, canvas.height);
 
             bodies.forEach(body => {
@@ -70,6 +84,7 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             });
 
             drawCom(tree);
+            drawFps(fps);
         }
 
         update()

@@ -39,14 +39,17 @@ pub struct Body {
     position: Vector2<f64>,
     velocity: Vector2<f64>,
     mass: f64,
+    radius: f64,
 }
 
 impl From<&Boid> for Body {
     fn from(value: &Boid) -> Self {
+        let lock = value.inner.read().expect("RWLock was poisoned");
         Self {
-            position: value.position(),
-            velocity: value.velocity(),
-            mass: value.mass(),
+            position: lock.pos,
+            velocity: lock.velocity,
+            mass: lock.mass,
+            radius: lock.radius(),
         }
     }
 }
@@ -56,6 +59,7 @@ impl From<&Arc<Boid>> for Body {
             position: value.position(),
             velocity: value.velocity(),
             mass: value.mass(),
+            radius: value.radius(),
         }
     }
 }

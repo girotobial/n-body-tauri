@@ -7,6 +7,7 @@ export type Body = {
     position: Vec,
     velocity: Vec,
     mass: number,
+    radius: number,
 }
 
 export type Boundary = {

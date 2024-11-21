@@ -187,10 +187,12 @@ impl Quadtree {
                 let position = b.position();
                 let velocity = b.velocity();
                 let mass = b.mass();
+                let radius = b.radius();
                 Body {
                     position,
                     velocity,
                     mass,
+                    radius,
                 }
             })
             .collect()

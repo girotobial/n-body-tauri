@@ -3,7 +3,7 @@ use std::{fmt, sync::RwLock};
 use crate::{traits::Mass, vector::Vector2};
 
 #[derive(Debug, Clone, Copy)]
-struct BoidInner {
+pub(crate) struct BoidInner {
     pub pos: Vector2<f64>,
     pub velocity: Vector2<f64>,
     pub mass: f64,
@@ -17,11 +17,14 @@ impl BoidInner {
             mass,
         }
     }
+    pub fn radius(&self) -> f64 {
+        self.mass.log10()
+    }
 }
 
 #[derive(Debug)]
 pub struct Boid {
-    inner: RwLock<BoidInner>,
+    pub(crate) inner: RwLock<BoidInner>,
 }
 
 impl Boid {
@@ -49,6 +52,10 @@ impl Boid {
 
     pub fn set_velocity(&self, velocity: Vector2<f64>) {
         self.inner.write().expect("RWLock was poisoned").velocity = velocity;
+    }
+
+    pub fn radius(&self) -> f64 {
+        self.inner.read().expect("RWLock was poisoned").radius()
     }
 }
 
