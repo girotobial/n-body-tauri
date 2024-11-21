@@ -8,9 +8,6 @@ type CanvasProps = {
 
 const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    var lastCalledTime;
-    var fps;
-    performance.now
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -57,22 +54,8 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             context.stroke();
         }
 
-        const drawFps = (ps: number | void): void => {
-            context.fillStyle = "Black";
-            context.font = "normal 16pt Arial";
-            context.fillText(ps + " fps",10,26);
-        }
 
         const update = () => {
-            if (!lastCalledTime) {
-                lastCalledTime = performance.now();
-                fps = 0;
-                return;
-            }
-            const delta = (performance.now() - lastCalledTime) / 1000;
-            lastCalledTime = performance.now();
-            fps = 1/delta;
-
             context.clearRect(0, 0, canvas.width, canvas.height);
 
             bodies.forEach(body => {
@@ -84,7 +67,6 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             });
 
             drawCom(tree);
-            drawFps(fps);
         }
 
         update()
