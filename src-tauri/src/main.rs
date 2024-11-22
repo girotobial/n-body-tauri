@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![warn(clippy::perf, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::{Arc, Mutex, RwLock};
