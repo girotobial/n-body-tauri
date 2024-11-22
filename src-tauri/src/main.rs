@@ -20,13 +20,13 @@ mod traits;
 mod types;
 mod vector;
 
-const TIMESTEP: u64 = 10;
+const TIMESTEP: u8 = 10;
 const DT: f64 = TIMESTEP as f64 / 1000.0;
 const MASS_ONE: f64 = 125e12;
 const MASS_TWO: f64 = 10e11;
 const SATELITE_MASS: f64 = 10e9;
 pub const GRAVITY: f64 = 6.67430e-11;
-const THETA: f64 = 0.5;
+const THETA: f64 = 0.8;
 const CENTER_X: f64 = 250.0;
 const CENTER_Y: f64 = 250.0;
 
@@ -99,31 +99,31 @@ fn orbital_speed(radius: f64, mass: f64) -> f64 {
     (GRAVITY * mass / radius).sqrt()
 }
 
-fn main() {
+fn stable_orbits(center: Vector2<f64>) -> [Arc<Boid>; 6] {
     let mass_one = {
-        let boid = Boid::new(CENTER_X, CENTER_Y, MASS_ONE);
+        let boid = Boid::new(center.x, center.y, MASS_ONE);
         boid.set_velocity(Vector2::new(0.0, 0.0));
         Arc::new(boid)
     };
     let mass_two_speed = (GRAVITY * MASS_ONE / 100.0).sqrt();
     let mass_two = {
-        let boid = Boid::new(CENTER_X + 100.0, CENTER_Y, MASS_TWO);
+        let boid = Boid::new(center.x + 100.0, center.y, MASS_TWO);
         boid.set_velocity(Vector2::new(0.0, mass_two_speed));
         Arc::new(boid)
     };
     let mass_three = {
-        let boid = Boid::new(CENTER_X - 100.0, CENTER_Y, MASS_TWO);
+        let boid = Boid::new(center.x - 100.0, center.y, MASS_TWO);
         boid.set_velocity(Vector2::new(0.0, -mass_two_speed));
         Arc::new(boid)
     };
     let mass_four = {
-        let boid = Boid::new(CENTER_X + 50.0, CENTER_Y + 86.6, SATELITE_MASS);
+        let boid = Boid::new(center.x + 50.0, center.y + 86.6, SATELITE_MASS);
         boid.set_velocity(Vector2::new(-7.94, 4.58));
         Arc::new(boid)
     };
 
     let mass_five = {
-        let boid = Boid::new(CENTER_X + 50.0, CENTER_Y - 86.6, SATELITE_MASS);
+        let boid = Boid::new(center.x + 50.0, center.y - 86.6, SATELITE_MASS);
         boid.set_velocity(Vector2::new(7.94, 4.58));
         Arc::new(boid)
     };
@@ -132,16 +132,23 @@ fn main() {
     let moon_speed = orbital_speed(10.0, MASS_TWO);
 
     let mass_six = {
-        let boid = Boid::new(CENTER_X + 110.0, CENTER_Y, SATELITE_MASS);
+        let boid = Boid::new(center.x + 110.0, center.y, SATELITE_MASS);
         boid.set_velocity(Vector2::new(0.0, moon_sun_speed + moon_speed));
         Arc::new(boid)
     };
 
+    [
+        mass_one, mass_two, mass_three, mass_four, mass_five, mass_six,
+    ]
+}
+
+fn main() {
     {
         let mut lock = BOIDS.write().unwrap();
-        for boid in [
-            mass_one, mass_two, mass_three, mass_four, mass_five, mass_six,
-        ] {
+        for boid in stable_orbits(Vector2 {
+            x: CENTER_X,
+            y: CENTER_Y,
+        }) {
             lock.push(boid);
         }
     }
@@ -189,7 +196,7 @@ fn main() {
                         max.y = new_position.y;
                     }
                 }
-                std::thread::sleep(Duration::from_millis(TIMESTEP));
+                std::thread::sleep(Duration::from_millis(TIMESTEP.into()));
             });
             Ok(())
         })
