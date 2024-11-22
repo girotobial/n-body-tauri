@@ -173,33 +173,12 @@ impl Quadtree {
         Ok(())
     }
 
-    pub fn bodies(&self) -> Vec<Body> {
-        self.boids
-            .iter()
-            .map(|b| {
-                let position = b.position();
-                let velocity = b.velocity();
-                let mass = b.mass();
-                let radius = b.radius();
-                Body {
-                    position,
-                    velocity,
-                    mass,
-                    radius,
-                }
-            })
-            .collect()
-    }
-
     pub fn calculate_force(&self, body: &BoidRCell, theta: f64) -> Vector2<f64> {
         self.head.calculate_force(body, theta)
     }
 
     pub fn boundaries(&self) -> Vec<Boundary> {
         self.head.boundaries()
-    }
-    pub fn boundary(&self) -> Boundary {
-        self.head.boundary
     }
     pub fn center_of_mass(&self) -> Vector2<f64> {
         self.head.center_of_mass
