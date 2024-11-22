@@ -57,7 +57,7 @@ impl Node {
             Contents::Empty => {
                 self.update_com(&boid);
                 self.contents = Contents::Boid(boid);
-                return Ok(());
+                Ok(())
             }
             Contents::Boid(current_boid) => {
                 let per_new_part = (self.boundary.max - self.boundary.min) / 2.0;
@@ -72,45 +72,38 @@ impl Node {
                         _ => None,
                     }
                     .expect("Somehow the integer has exceeded 3");
-                    let offset = Vector2::new(x as f64 * per_new_part.x, y as f64 * per_new_part.y);
+                    let offset =
+                        Vector2::new(f64::from(x) * per_new_part.x, f64::from(y) * per_new_part.y);
                     let min = boundary_min + offset;
                     let max = min + per_new_part;
                     Box::new(Node::new(Boundary { min, max }))
                 });
                 let old_boid = current_boid.clone();
                 self.contents = Contents::Children(new_children);
-                match self.insert(old_boid.clone()) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        self.contents = Contents::Boid(old_boid);
-                        return Err(e);
-                    }
+                if let Err(e) = self.insert(old_boid.clone()) {
+                    self.contents = Contents::Boid(old_boid);
+                    return Err(e);
                 }
-                match self.insert(boid.clone()) {
-                    Ok(_) => (),
-                    Err(e) => return Err(e),
-                }
+                self.insert(boid.clone())?;
                 self.update_com(&boid);
-                return Ok(());
+                Ok(())
             }
             Contents::Children(children) => {
                 for child in children.iter_mut() {
-                    match child.insert(boid.clone()) {
-                        Ok(_) => (),
-                        Err(_) => continue,
+                    if child.insert(boid.clone()).is_err() {
+                        continue;
                     }
                 }
                 self.update_com(&boid);
-                return Ok(());
+                Ok(())
             }
         }
     }
 
     fn update_com(&mut self, boid: &Boid) {
         let new_mass = self.mass + boid.mass();
-        let new_com = (self.center_of_mass * (self.mass as f64)
-            + boid.center_of_mass() * (boid.mass() as f64))
-            / (new_mass as f64);
+        let new_com =
+            (self.center_of_mass * self.mass + boid.center_of_mass() * boid.mass()) / new_mass;
         self.mass = new_mass;
         self.center_of_mass = new_com;
     }
@@ -139,7 +132,7 @@ impl Node {
                     return Vector2::default();
                 }
                 let force_magnitude = (GRAVITY * self.mass * body.mass()) / (distance * distance);
-                return direction * force_magnitude / distance;
+                direction * force_magnitude / distance
             }
             Contents::Children(children) => {
                 let mut force = Vector2::default();
@@ -148,7 +141,7 @@ impl Node {
                 }
                 force
             }
-            Contents::Empty => return Vector2::default(),
+            Contents::Empty => Vector2::default(),
         }
     }
 

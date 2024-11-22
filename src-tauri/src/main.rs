@@ -1,5 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![warn(clippy::perf, clippy::nursery, clippy::pedantic)]
+#![warn(clippy::perf, clippy::pedantic)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::{Arc, Mutex, RwLock};
@@ -166,7 +166,6 @@ fn main() {
                     };
                     let _ = replace(&mut *tree_state, Some(new_state));
                 }
-
                 for body in BOIDS.write().unwrap().iter() {
                     let force = tree.calculate_force(body, THETA);
                     let acceleration = force * (1.0 / body.mass());
