@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Body, Boundary, Tree } from '../types';
+import { Body, Boundary, Tree, Vec } from '../types';
 
 type CanvasProps = {
     bodies: Body[],
@@ -29,8 +29,8 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             const y = body.position.y;
             const radius = body.radius;
             context.arc(x, y, radius / 3, 0, 2  * Math.PI);
+            context.fillText(`${x.toFixed()}, ${y.toFixed()}`, x, y)
             context.fill();
-            context.stroke();
         }
 
         const drawBoundary = (bound: Boundary): void => {
@@ -54,9 +54,28 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             context.stroke();
         }
 
+        const translate_and_scale = (pos: Vec, bounds: Boundary): Vec => {
+            const min = bounds.min;
+            const max = bounds.max;
+            const scale = {
+                x: canvas.width / (max.x - min.x),
+                y: canvas.height / (max.y - min.y)
+            };
+
+            return {
+                x: (pos.x - bounds.min.x) * scale.x,
+                y: (pos.y - bounds.min.y) * scale.y
+            }
+        }
 
         const update = () => {
             context.clearRect(0, 0, canvas.width, canvas.height);
+            let boundary = tree.outer_bounds;
+
+
+            context.beginPath();
+            context.fillText(`${boundary.min.x.toFixed()} -> ${boundary.max.x.toFixed()}`, 50, 50);
+            context.fillText(`${boundary.min.y.toFixed()} -> ${boundary.max.y.toFixed()}`, 50, 100);
 
             bodies.forEach(body => {
                 draw(body);
@@ -65,8 +84,6 @@ const Canvas: React.FC<CanvasProps> = ({ bodies, tree }) => {
             tree.boundaries.forEach(bound => {
                 drawBoundary(bound);
             });
-
-            drawCom(tree);
         }
 
         update()

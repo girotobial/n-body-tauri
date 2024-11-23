@@ -18,4 +18,6 @@ export type Boundary = {
 export type Tree = {
     boundaries: Boundary[],
     center_of_mass: Vec,
+    outer_bounds: Boundary,
+    center: Vec,
 }

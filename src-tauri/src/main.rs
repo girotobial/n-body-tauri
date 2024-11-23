@@ -26,9 +26,9 @@ const MASS_ONE: f64 = 125e12;
 const MASS_TWO: f64 = 10e11;
 const SATELITE_MASS: f64 = 10e9;
 pub const GRAVITY: f64 = 6.67430e-11;
-const THETA: f64 = 0.8;
-const CENTER_X: f64 = 250.0;
-const CENTER_Y: f64 = 250.0;
+const THETA: f64 = 0.6;
+const CENTER_X: f64 = 500.0;
+const CENTER_Y: f64 = 500.0;
 
 static BOIDS: RwLock<Vec<BoidRCell>> = RwLock::new(Vec::new());
 static TREE_STATE: RwLock<Option<TreeState>> = RwLock::new(Option::None);
@@ -69,6 +69,8 @@ impl From<&Arc<Boid>> for Body {
 struct TreeState {
     boundaries: Vec<Boundary>,
     center_of_mass: Vector2<f64>,
+    outer_bounds: Boundary,
+    center: Vector2<f64>,
 }
 
 #[tauri::command]
@@ -81,8 +83,8 @@ fn get_tree(tree_state: State<&'static RwLock<Option<TreeState>>>) -> Option<Tre
     tree_state.read().unwrap().clone()
 }
 
-fn cold_colapse(center: Vector2<f64>, radius: f64, count: usize) -> Vec<Arc<Boid>> {
-    let increment = std::f64::consts::PI * 2.0 / count as f64;
+fn cold_colapse(center: Vector2<f64>, radius: f64, count: u32) -> Vec<Arc<Boid>> {
+    let increment = (std::f64::consts::PI * 2.0) / f64::from(count);
     let mut boids = vec![];
     let mut theta = 0.0;
 
@@ -165,15 +167,8 @@ fn main() {
                     if let Ok(()) = tree.insert(body.clone()) {}
                 }
 
-                {
-                    use std::mem::replace;
-                    let mut tree_state = TREE_STATE.write().expect("Could not acquire bounds lock");
-                    let new_state = TreeState {
-                        boundaries: tree.boundaries(),
-                        center_of_mass: tree.center_of_mass(),
-                    };
-                    let _ = replace(&mut *tree_state, Some(new_state));
-                }
+                let mut new_max = Vector2::new(None, None);
+                let mut new_min = Vector2::new(None, None);
                 for body in BOIDS.write().unwrap().iter() {
                     let force = tree.calculate_force(body, THETA);
                     let acceleration = force * (1.0 / body.mass());
@@ -183,18 +178,61 @@ fn main() {
                     body.set_position(new_position);
 
                     // Resize the tree
-                    if new_position.x < min.x {
-                        min.x = new_position.x;
+                    match new_min.x {
+                        Some(x) => {
+                            if new_position.x < x {
+                                new_min.x = Some(new_position.x);
+                            }
+                        }
+                        None => {
+                            new_min.x = Some(new_position.x);
+                        }
                     }
-                    if new_position.y < min.y {
-                        min.y = new_position.y;
+                    match new_min.y {
+                        Some(y) => {
+                            if new_position.y < y {
+                                new_min.y = Some(new_position.y);
+                            }
+                        }
+                        None => {
+                            new_min.y = Some(new_position.y);
+                        }
                     }
-                    if new_position.x > max.x {
-                        max.x = new_position.x;
+                    match new_max.x {
+                        Some(x) => {
+                            if new_position.x > x {
+                                new_max.x = Some(new_position.x);
+                            }
+                        }
+                        None => {
+                            new_max.x = Some(new_position.x);
+                        }
                     }
-                    if new_position.y > max.y {
-                        max.y = new_position.y;
+                    match new_max.y {
+                        Some(y) => {
+                            if new_position.y > y {
+                                new_max.y = Some(new_position.y);
+                            }
+                        }
+                        None => {
+                            new_max.y = Some(new_position.y);
+                        }
                     }
+                }
+                min.x = new_min.x.unwrap_or(0.0);
+                min.y = new_min.y.unwrap_or(0.0);
+                max.x = new_max.x.unwrap_or(0.0);
+                max.y = new_max.y.unwrap_or(0.0);
+                {
+                    use std::mem::replace;
+                    let mut tree_state = TREE_STATE.write().expect("Could not acquire bounds lock");
+                    let new_state = TreeState {
+                        boundaries: tree.boundaries(),
+                        center_of_mass: tree.center_of_mass(),
+                        outer_bounds: tree.outer_bounds(),
+                        center: tree.outer_bounds().center(),
+                    };
+                    let _ = replace(&mut *tree_state, Some(new_state));
                 }
                 std::thread::sleep(Duration::from_millis(TIMESTEP.into()));
             });
