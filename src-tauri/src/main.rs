@@ -18,6 +18,7 @@ mod boid;
 mod boundary;
 mod quadtree;
 mod signals;
+mod star_system;
 mod traits;
 mod types;
 mod vector;
@@ -111,11 +112,16 @@ fn stable_orbits(center: Vector2<f64>) -> [Arc<Boid>; 6] {
 fn main() {
     {
         let mut lock = BOIDS.write().unwrap();
+<<<<<<< HEAD
         for boid in stable_orbits(Vector2 {
             x: CENTER_X,
             y: CENTER_Y,
         }) {
             lock.push(boid);
+=======
+        for boid in crate::star_system::StarSystem::generate_disk_system(100, 100.0) {
+            lock.push(Arc::new(boid));
+>>>>>>> 0289d2b (add signals and star system)
         }
     }
 

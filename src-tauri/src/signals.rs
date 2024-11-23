@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 #[derive(serde::Serialize, Clone, Copy)]
 pub struct Body {
-    position: Vector2<f64>,
-    velocity: Vector2<f64>,
-    mass: f64,
-    radius: f64,
+    pub position: Vector2<f64>,
+    pub velocity: Vector2<f64>,
+    pub mass: f64,
+    pub radius: f64,
 }
 
 impl From<&Boid> for Body {

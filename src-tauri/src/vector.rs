@@ -96,3 +96,15 @@ where
         write!(f, "({:.2}, {:.2})", self.x, self.y)
     }
 }
+
+impl<T> From<[T; 2]> for Vector2<T>
+where
+    T: Copy + Clone + PartialEq,
+{
+    fn from(value: [T; 2]) -> Self {
+        Self {
+            x: value[0],
+            y: value[1],
+        }
+    }
+}
