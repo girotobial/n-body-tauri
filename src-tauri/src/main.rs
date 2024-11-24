@@ -9,6 +9,7 @@ use std::time::Duration;
 use boid::Boid;
 use boundary::Boundary;
 use quadtree::Quadtree;
+use signals::{Body, TreeState};
 use tauri::State;
 use types::BoidRCell;
 use vector::Vector2;
@@ -16,6 +17,7 @@ use vector::Vector2;
 mod boid;
 mod boundary;
 mod quadtree;
+mod signals;
 mod traits;
 mod types;
 mod vector;
@@ -26,52 +28,14 @@ const MASS_ONE: f64 = 125e12;
 const MASS_TWO: f64 = 10e11;
 const SATELITE_MASS: f64 = 10e9;
 pub const GRAVITY: f64 = 6.67430e-11;
-const THETA: f64 = 0.6;
-const CENTER_X: f64 = 500.0;
-const CENTER_Y: f64 = 500.0;
+const THETA: f64 = 0.9;
+const CENTER_X: f64 = 250.0;
+const CENTER_Y: f64 = 250.0;
 
 static BOIDS: RwLock<Vec<BoidRCell>> = RwLock::new(Vec::new());
 static TREE_STATE: RwLock<Option<TreeState>> = RwLock::new(Option::None);
 static MIN: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(0.0, 0.0));
 static MAX: Mutex<Vector2<f64>> = Mutex::new(Vector2::new(1000.0, 1000.0));
-
-#[derive(serde::Serialize, Clone, Copy)]
-pub struct Body {
-    position: Vector2<f64>,
-    velocity: Vector2<f64>,
-    mass: f64,
-    radius: f64,
-}
-
-impl From<&Boid> for Body {
-    fn from(value: &Boid) -> Self {
-        let lock = value.inner.read().expect("RWLock was poisoned");
-        Self {
-            position: lock.pos,
-            velocity: lock.velocity,
-            mass: lock.mass,
-            radius: lock.radius(),
-        }
-    }
-}
-impl From<&Arc<Boid>> for Body {
-    fn from(value: &Arc<Boid>) -> Self {
-        Self {
-            position: value.position(),
-            velocity: value.velocity(),
-            mass: value.mass(),
-            radius: value.radius(),
-        }
-    }
-}
-
-#[derive(serde::Serialize, Debug, Clone)]
-struct TreeState {
-    boundaries: Vec<Boundary>,
-    center_of_mass: Vector2<f64>,
-    outer_bounds: Boundary,
-    center: Vector2<f64>,
-}
 
 #[tauri::command]
 fn get_bodies(boids: State<&'static RwLock<Vec<BoidRCell>>>) -> Vec<Body> {
@@ -169,6 +133,7 @@ fn main() {
 
                 let mut new_max = Vector2::new(None, None);
                 let mut new_min = Vector2::new(None, None);
+
                 for body in BOIDS.write().unwrap().iter() {
                     let force = tree.calculate_force(body, THETA);
                     let acceleration = force * (1.0 / body.mass());
